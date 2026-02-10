@@ -8,3 +8,9 @@ pandas
 scikit-learn
 
 streamlit
+flask
+gunicorn
+python-dotenv
+numpy
+pandas
+scikit-learn
