@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeartGuard - Medical Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root { --primary: #e63946; --secondary: #1d3557; --sidebar-w: 260px; }
+        body { background: #f4f7f6; font-family: 'Poppins', sans-serif; overflow-x: hidden; }
+
+        /* Sidebar */
+        .sidebar { position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh; background: linear-gradient(180deg, #1d3557 0%, #457b9d 100%); color: white; padding: 25px; z-index: 1000; box-shadow: 4px 0 15px rgba(0,0,0,0.1); }
+        .main-content { margin-left: var(--sidebar-w); padding: 30px; }
+
+        /* User Profile in Sidebar */
+        .user-box { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.1); }
+
+        .nav-link { color: rgba(255,255,255,0.8); margin-bottom: 8px; padding: 12px 15px; border-radius: 8px; transition: 0.3s; }
+        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; transform: translateX(5px); }
+        .nav-link i { width: 25px; }
+
+        /* Cards */
+        .card-custom { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 5px 25px rgba(0,0,0,0.05); border: none; margin-bottom: 25px; }
+
+        /* Chat */
+        .chat-box { height: 350px; overflow-y: auto; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .msg { padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; max-width: 80%; font-size: 0.9rem; }
+        .bot { background: white; border: 1px solid #dee2e6; float: left; clear: both; }
+        .user { background: var(--primary); color: white; float: right; clear: both; }
+
+        /* Graph Container (Medical Look) */
+        .chart-container {
+            position: relative;
+            height: 350px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 15px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Hidden Data -->
+<div id="latest-data"
+     data-exists="{{ 'yes' if history else 'no' }}"
+     data-age="{{ history[-1].age if history else '' }}"
+     data-bp="{{ history[-1].sysBP if history else '' }}"
+     data-chol="{{ history[-1].totChol if history else '' }}"
+     data-gluc="{{ history[-1].glucose if history else '' }}"
+     data-result="{{ history[-1].result if history else '' }}">
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <h4 class="mb-4 fw-bold text-center"><i class="fas fa-heartbeat text-danger"></i> HeartGuard</h4>
+
+    <!-- User Name Display -->
+    <div class="user-box d-flex align-items-center">
+        <div class="bg-white text-dark rounded-circle p-2 me-3"><i class="fas fa-user"></i></div>
+        <div>
+            <div class="small text-white-50">Welcome,</div>
+            <div class="fw-bold">{{ user.username }}</div>
+        </div>
+    </div>
+
+    <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist">
+        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-diag"><i class="fas fa-stethoscope"></i> Diagnosis</button>
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-chat"><i class="fas fa-robot"></i> AI Doctor</button>
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-tips"><i class="fas fa-apple-alt"></i> Health Tips</button>
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-graph"><i class="fas fa-chart-line"></i> Analytics</button>
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-hist"><i class="fas fa-history"></i> History</button>
+    </div>
+
+    <a href="/logout" class="btn btn-outline-light w-100 mt-5">Logout</a>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for c, m in messages %}<div class="alert alert-{{c}} shadow-sm">{{m}}</div>{% endfor %}{% endif %}
+    {% endwith %}
+
+    <div class="tab-content">
+
+        <!-- 1. DIAGNOSIS -->
+        <div class="tab-pane fade show active" id="tab-diag">
+            <h3 class="mb-4">New Diagnosis</h3>
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card-custom">
+                        <form method="POST">
+                            <input type="hidden" name="predict_btn" value="true">
+
+                            <h6 class="text-danger border-bottom pb-2 mb-3">Vitals & Habits</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4"><label>Age</label><input type="number" name="age" class="form-control" value="{{ latest.age if latest else '' }}" required></div>
+                                <div class="col-md-4"><label>Gender</label><select name="gender" class="form-select">
+                                    <option value="male" {{ 'selected' if latest and latest.gender=='male' else '' }}>Male</option>
+                                    <option value="female" {{ 'selected' if latest and latest.gender=='female' else '' }}>Female</option>
+                                </select></div>
+                                <div class="col-md-4"><label>BMI</label><input type="number" step="0.1" name="BMI" class="form-control" placeholder="26.5" value="{{ latest.BMI if latest else '' }}" required></div>
+                                <div class="col-md-6"><label>Smoker?</label><select name="currentSmoker" class="form-select">
+                                    <option value="no" {{ 'selected' if latest and latest.currentSmoker=='no' else '' }}>No</option>
+                                    <option value="yes" {{ 'selected' if latest and latest.currentSmoker=='yes' else '' }}>Yes</option>
+                                </select></div>
+                                <div class="col-md-6"><label>Cigs/Day</label><input type="number" name="cigsPerDay" class="form-control" value="{{ latest.cigsPerDay if latest else '0' }}"></div>
+                            </div>
+
+
+                            <h6 class="text-danger border-bottom pb-2 mb-3 mt-4">Medical History & Readings</h6>
+                            <div class="row g-3">
+                                <div class="col-6 col-md-3"><label>BP Meds</label><select name="BPMeds" class="form-select">
+                                    <option value="no" {{ 'selected' if latest and latest.BPMeds=='no' else '' }}>No</option>
+                                    <option value="yes" {{ 'selected' if latest and latest.BPMeds=='yes' else '' }}>Yes</option>
+                                </select></div>
+                                <div class="col-6 col-md-3"><label>Stroke</label><select name="prevalentStroke" class="form-select">
+                                    <option value="no" {{ 'selected' if latest and latest.prevalentStroke=='no' else '' }}>No</option>
+                                    <option value="yes" {{ 'selected' if latest and latest.prevalentStroke=='yes' else '' }}>Yes</option>
+                                </select></div>
+                                <div class="col-6 col-md-3"><label>Hyp</label><select name="prevalentHyp" class="form-select">
+                                    <option value="no" {{ 'selected' if latest and latest.prevalentHyp=='no' else '' }}>No</option>
+                                    <option value="yes" {{ 'selected' if latest and latest.prevalentHyp=='yes' else '' }}>Yes</option>
+                                </select></div>
+                                <div class="col-6 col-md-3"><label>Diabetes</label><select name="diabetes" class="form-select">
+                                    <option value="no" {{ 'selected' if latest and latest.diabetes=='no' else '' }}>No</option>
+                                    <option value="yes" {{ 'selected' if latest and latest.diabetes=='yes' else '' }}>Yes</option>
+                                </select></div>
+
+                                <div class="col-4"><label>Sys BP</label><input type="number" name="sysBP" class="form-control" value="{{ latest.sysBP if latest else '' }}" required></div>
+                                <div class="col-4"><label>Dia BP</label><input type="number" name="diaBP" class="form-control" value="{{ latest.diaBP if latest else '' }}" required></div>
+                                <div class="col-4"><label>Chol</label><input type="number" name="totChol" class="form-control" value="{{ latest.totChol if latest else '' }}" required></div>
+                                <div class="col-6"><label>Glucose</label><input type="number" name="glucose" class="form-control" value="{{ latest.glucose if latest else '' }}" required></div>
+                                <div class="col-6"><label>Heart Rate</label><input type="number" name="heartRate" class="form-control" value="{{ latest.heartRate if latest else '' }}" required></div>
+                            </div>
+                            <button class="btn btn-danger w-100 mt-4">Analyze Risk</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    {% if result %}
+                    <div class="card-custom text-center h-100 d-flex flex-column justify-content-center bg-{{ 'danger' if 'High' in result else 'success' }} text-white">
+                        <i class="fas fa-heartbeat fa-5x mb-3 fa-beat"></i>
+                        <h3>{{ result }}</h3>
+                        <p>AI Analysis Complete</p>
+                    </div>
+                    {% else %}
+                    <div class="card-custom text-center h-100 d-flex flex-column justify-content-center text-muted">
+                        <i class="fas fa-user-md fa-4x mb-3 opacity-25"></i>
+                        <h5>Ready to Check</h5>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. AI DOCTOR (Auto-suggestion based on data) -->
+        <div class="tab-pane fade" id="tab-chat">
+            <h3 class="mb-4">Dr. AI Assistant</h3>
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card-custom">
+                        <div id="chat-box" class="chat-box">
+                            <div class="msg bot">Hello {{ user.username }}! I can analyze your reports.</div>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="chat-in" class="form-control" placeholder="Ask a question (Press Enter)">
+                            <button onclick="sendChat()" class="btn btn-primary">Send</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-custom border-start border-4 border-success">
+                        <h5><i class="fas fa-file-medical-alt text-success me-2"></i>Smart Analysis</h5>
+                        <p class="small text-muted">Get advice based on your latest BP and Cholesterol levels.</p>
+                        <button onclick="analyzeMyReport()" class="btn btn-outline-success w-100">Analyze My Report</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. HEALTH TIPS (With Questioning) -->
+        <div class="tab-pane fade" id="tab-tips">
+            <h3 class="mb-4">Health Tips</h3>
+            <div class="card-custom bg-light border-0">
+                <div class="input-group">
+                    <input type="text" id="tip-query" class="form-control" placeholder="Ask specific tip (e.g., diet for high BP)">
+                    <button onclick="getInstantTip()" class="btn btn-warning text-dark fw-bold">Get Tip</button>
+                </div>
+                <div id="tip-result" class="mt-3"></div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4"><div class="card-custom bg-success text-white"><h5>Eat Veggies</h5><p>Rich in fiber.</p></div></div>
+                <div class="col-md-4"><div class="card-custom bg-info text-white"><h5>Walk Daily</h5><p>30 mins cardio.</p></div></div>
+                <div class="col-md-4"><div class="card-custom bg-warning text-dark"><h5>Sleep</h5><p>7-8 hours rest.</p></div></div>
+            </div>
+        </div>
+
+        <!-- 4. ANALYTICS (Medical Look) -->
+        <div class="tab-pane fade" id="tab-graph">
+            <h3 class="mb-4">Health Monitor</h3>
+            <div class="card-custom">
+                <div class="chart-container">
+                    <canvas id="myChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. HISTORY -->
+        <div class="tab-pane fade" id="tab-hist">
+            <h3 class="mb-4">History</h3>
+            <div class="card-custom">
+                <table class="table">
+                    <thead><tr><th>Date</th><th>BP</th><th>Chol</th><th>Result</th></tr></thead>
+                    <tbody>
+                        {% for h in history %}
+                        <tr>
+                            <td>{{ h.created.strftime('%d-%b') }}</td>
+                            <td>{{ h.sysBP }}/{{ h.diaBP }}</td>
+                            <td>{{ h.totChol }}</td>
+                            <td><span class="badge bg-{{ 'danger' if 'High' in h.result else 'success' }}">{{ h.result }}</span></td>
+                        </tr>
+                        {% else %}<tr><td colspan="4">No Data</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // --- 1. MEDICAL GRAPH VISUALS ---
+    try {
+        const dates = {{ dates|tojson|safe }};
+        const sys = {{ bp_data|tojson|safe }};
+        const chol = {{ chol_data|tojson|safe }};
+
+        if(document.getElementById('myChart') && dates.length > 0) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+
+            // Medical Gradients
+            let gradRed = ctx.createLinearGradient(0,0,0,400);
+            gradRed.addColorStop(0, 'rgba(220, 53, 69, 0.5)');
+            gradRed.addColorStop(1, 'rgba(220, 53, 69, 0.0)');
+
+            let gradBlue = ctx.createLinearGradient(0,0,0,400);
+            gradBlue.addColorStop(0, 'rgba(13, 110, 253, 0.5)');
+            gradBlue.addColorStop(1, 'rgba(13, 110, 253, 0.0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        { label: 'Systolic BP', data: sys, borderColor: '#dc3545', backgroundColor: gradRed, fill: true, tension: 0.4, pointRadius: 4 },
+                        { label: 'Cholesterol', data: chol, borderColor: '#0d6efd', backgroundColor: gradBlue, fill: true, tension: 0.4, pointRadius: 4 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position: 'top'} } }
+            });
+        }
+    } catch(e) {}
+
+    // --- 2. PERSONAL ANALYSIS LOGIC ---
+    let latestData = null;
+    const dDiv = document.getElementById('latest-data');
+    if(dDiv && dDiv.dataset.exists === 'yes') {
+        latestData = { age: dDiv.dataset.age, bp: dDiv.dataset.bp, chol: dDiv.dataset.chol, gluc: dDiv.dataset.gluc };
+    }
+
+    window.analyzeMyReport = async function() {
+        if(!latestData) { alert("No data to analyze!"); return; }
+        const box = document.getElementById('chat-box');
+
+        box.innerHTML += `<div class="clearfix"><div class="msg user">Analyze my latest report: BP ${latestData.bp}, Chol ${latestData.chol}</div></div>`;
+        const prompt = `Patient Data: Age ${latestData.age}, BP ${latestData.bp}, Cholesterol ${latestData.chol}, Glucose ${latestData.gluc}. Provide specific health advice.`;
+
+        try {
+            const res = await fetch('/ask_ai', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query: prompt})});
+            const data = await res.json();
+            displayResponse(data.response, box);
+        } catch(e) { console.log(e); }
+    }
+
+    // --- 3. CHATBOT (Enter Key Fix) ---
+    document.getElementById('chat-in').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') window.sendChat();
+    });
+
+    window.sendChat = async function() {
+        const inp = document.getElementById('chat-in');
+        const box = document.getElementById('chat-box');
+        if(!inp.value) return;
+
+        const q = inp.value; inp.value = '';
+        box.innerHTML += `<div class="clearfix"><div class="msg user">${q}</div></div>`;
+        box.scrollTop = box.scrollHeight;
+
+        try {
+            const res = await fetch('/ask_ai', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:q})});
+            const data = await res.json();
+            displayResponse(data.response, box);
+        } catch(e) { box.innerHTML += `<div class="msg bot text-danger">Error</div>`; }
+    }
+
+    function displayResponse(respText, container) {
+        let html = "";
+        try {
+            const items = JSON.parse(respText);
+            items.forEach(i => html += `<b>${i.title}:</b> ${i.detail}<br><br>`);
+        } catch(e) { html = respText; }
+        container.innerHTML += `<div class="clearfix"><div class="msg bot">${html}</div></div>`;
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // --- 4. TIPS QUESTIONING ---
+    window.getInstantTip = async function() {
+        const q = document.getElementById('tip-query').value;
+        const r = document.getElementById('tip-result');
+        if(!q) return;
+        r.innerHTML = "Generating...";
+
+        try {
+            const res = await fetch('/ask_ai', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query: "Health tip about: "+q})});
+            const data = await res.json();
+            let html = "";
+            try { JSON.parse(data.response).forEach(i => html += `<div class="p-2 border mb-2 bg-white rounded"><strong>${i.title}</strong>: ${i.detail}</div>`); }
+            catch(e) { html = data.response; }
+            r.innerHTML = html;
+        } catch(e) { r.innerHTML = "Error"; }
+    }
+});
+</script>
+</body>
+</html>

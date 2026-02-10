@@ -1,0 +1,23 @@
+<h2>Admin Panel</h2>
+
+<h3>Users</h3>
+<ul>
+{% for u in users %}
+<li>{{u.username}}</li>
+{% endfor %}
+</ul>
+
+<h3>Predictions</h3>
+<table border="1">
+<tr><th>User</th><th>Age</th><th>BP</th><th>Result</th></tr>
+{% for r in records %}
+<tr>
+<td>{{r.user_id}}</td>
+<td>{{r.age}}</td>
+<td>{{r.bp}}</td>
+<td>{{r.result}}</td>
+</tr>
+{% endfor %}
+</table>
+
+<a href="/export">Export Excel</a>

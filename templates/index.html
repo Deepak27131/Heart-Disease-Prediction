@@ -1,0 +1,171 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Heart Disease Prediction</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-dark text-white">
+    <div class="container mt-5">
+      <h2 class="text-center mb-4">Heart Disease Prediction (Framingham)</h2>
+
+      <form action="/predict" method="POST" class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Gender</label>
+          <select name="gender" class="form-control" required>
+            <option value="1">Male</option>
+            <option value="0">Female</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Age</label>
+          <input
+            type="number"
+            name="age"
+            class="form-control"
+            placeholder="Age"
+            required
+          />
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Current Smoker?</label>
+          <select name="currentSmoker" class="form-control" required>
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Cigs Per Day</label>
+          <input
+            type="number"
+            name="cigsPerDay"
+            class="form-control"
+            placeholder="Cigarettes per day"
+            step="0.1"
+          />
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">BP Meds?</label>
+          <select name="BPMeds" class="form-control" required>
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Prevalent Stroke?</label>
+          <select name="prevalentStroke" class="form-control" required>
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Prevalent Hypertension?</label>
+          <select name="prevalentHyp" class="form-control" required>
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Diabetes?</label>
+          <select name="diabetes" class="form-control" required>
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Total Cholesterol</label>
+          <input
+            type="number"
+            name="totChol"
+            class="form-control"
+            placeholder="Total Cholesterol"
+            step="0.1"
+            required
+          />
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Systolic BP</label>
+          <input
+            type="number"
+            name="sysBP"
+            class="form-control"
+            placeholder="Systolic Blood Pressure"
+            step="0.1"
+            required
+          />
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Diastolic BP</label>
+          <input
+            type="number"
+            name="diaBP"
+            class="form-control"
+            placeholder="Diastolic Blood Pressure"
+            step="0.1"
+            required
+          />
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">BMI</label>
+          <input
+            type="number"
+            name="BMI"
+            class="form-control"
+            placeholder="Body Mass Index"
+            step="0.01"
+            required
+          />
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Heart Rate</label>
+          <input
+            type="number"
+            name="heartRate"
+            class="form-control"
+            placeholder="Heart Rate"
+            step="0.1"
+            required
+          />
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Glucose</label>
+          <input
+            type="number"
+            name="glucose"
+            class="form-control"
+            placeholder="Glucose Level"
+            step="0.1"
+            required
+          />
+        </div>
+
+        <div class="col-12 mt-4">
+          <button type="submit" class="btn btn-success w-100">
+            Predict Result
+          </button>
+        </div>
+      </form>
+
+      {% if prediction %}
+      <div class="alert alert-info mt-4 text-center">
+        <h3>{{ prediction }}</h3>
+      </div>
+      {% endif %}
+    </div>
+  </body>
+</html>
