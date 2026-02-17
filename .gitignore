@@ -1,29 +1,6 @@
-
-# Python specific
+*.ipynb
+*.csv
+*.db
+*.txt
 __pycache__/
-
-*.py[cod]
-*$py.class
-*.log
-
-# Virtual Environment
 .venv/
-venv/
-ENV/
-env/
-
-# Environment Variables (IMPORTANT: Contains API Keys)
-.env
-
-# Database (Local SQLite)
-store.db
-db.sqlite3
-*.sqlite3
-
-# IDE
-.idea/
-.vscode/
-
-# Build
-dist/
-build/
